@@ -8,12 +8,8 @@ fn main() {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(mut stream) => {
-                let mut message = String::new();
-                stream
-                    .read_to_string(&mut message)
-                    .expect("Failed to read from client.");
-                pong(&mut stream, ping_count(&message));
+            Ok(stream) => {
+                handle_client(stream);
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -22,14 +18,18 @@ fn main() {
     }
 }
 
-fn ping_count(message: &str) -> usize {
-    let by_newline: Vec<&str> = message.trim().split('\n').collect();
-    by_newline.len()
-}
+fn handle_client(mut stream: TcpStream) {
+    let mut buf = [0; 512];
 
-fn pong(stream: &mut TcpStream, count: usize) {
-    let buf = b"+PONG\r\n";
-    for _i in 0..count {
-        stream.write_all(buf).expect("Failed to write to client.");
+    loop {
+        let bytes_read = stream.read(&mut buf).expect("Failed to read from client.");
+
+        if bytes_read == 0 {
+            break;
+        }
+
+        stream
+            .write_all(b"+PONG\r\n")
+            .expect("Failed to write to client.");
     }
 }
