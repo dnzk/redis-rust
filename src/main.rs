@@ -1,3 +1,4 @@
+use redis_starter_rust::{Request, Response};
 use std::{
     io::{Read, Write},
     net::{TcpListener, TcpStream},
@@ -28,9 +29,11 @@ fn handle_client(mut stream: TcpStream) {
         if bytes_read == 0 {
             break;
         }
-
+        let request = Request::from(&buf);
+        let command = request.command();
+        let response = Response::from(&command);
         stream
-            .write_all(b"+PONG\r\n")
-            .expect("Failed to write to client.");
+            .write_all(&response.buf())
+            .expect("Failed to write to client");
     }
 }
