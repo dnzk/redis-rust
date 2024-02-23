@@ -1,54 +1,67 @@
-use std::fmt;
-
 use crate::Command;
 
-pub struct Response<'a> {
-    r: &'a str,
+pub struct Response {
+    reply: String,
 }
 
-impl<'a> Response<'a> {
-    pub fn new(source: &'a str) -> Self {
-        Response { r: source }
-    }
-
-    fn format(&self) -> String {
-        if self.r.is_empty() {
-            return format!("$4\r\nPONG\r\n");
-        }
-        format!("${}\r\n{}\r\n", self.r.len(), self.r)
-    }
-
+impl<'a> Response {
     pub fn from(command: &'a Command) -> Self {
         match command {
-            Command::Echo(s) => Response { r: s },
-            _ => Response { r: "" },
+            Command::Echo(s) => Response {
+                reply: format!("${}\r\n{}\r\n", s.len(), s),
+            },
+            Command::Set(_k, _v) => Response {
+                reply: "+OK\r\n".to_string(),
+            },
+            Command::Get(_k, v) => Response {
+                reply: match v {
+                    Some(value) => format!("${}\r\n{}\r\n", value.len(), value),
+                    None => "(nil)".to_string(),
+                },
+            },
+            _ => Response {
+                reply: "$4\r\nPONG\r\n".to_string(),
+            },
         }
     }
 
     pub fn buf(&self) -> Vec<u8> {
-        self.format().into_bytes()
-    }
-}
-
-impl<'a> fmt::Display for Response<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.format())
+        self.reply.clone().into_bytes()
     }
 }
 
 #[cfg(test)]
-mod resp_tests {
+mod response_tests {
     use super::*;
+    use crate::Command;
 
     #[test]
-    fn formats_correctly() {
-        let resp = Response::new("hey");
-        assert_eq!(resp.format(), String::from("$3\r\nhey\r\n"));
+    fn replies_echo() {
+        let r = Response::from(&Command::Echo("hi".to_string()));
+        assert_eq!(r.reply, "$2\r\nhi\r\n");
     }
 
     #[test]
-    fn is_printable() {
-        let resp = Response::new("hello");
-        assert_eq!(resp.to_string(), String::from("$5\r\nhello\r\n"));
+    fn replies_set() {
+        let r = Response::from(&Command::Set("foo".to_string(), "bar".to_string()));
+        assert_eq!(r.reply, "+OK\r\n");
+    }
+
+    #[test]
+    fn replies_get() {
+        let r = Response::from(&Command::Get("foo".to_string(), Some("bar".to_string())));
+        assert_eq!(r.reply, "$3\r\nbar\r\n");
+    }
+
+    #[test]
+    fn replies_get_when_none() {
+        let r = Response::from(&Command::Get("foo".to_string(), None));
+        assert_eq!(r.reply, "(nil)");
+    }
+
+    #[test]
+    fn replies_ping() {
+        let r = Response::from(&Command::Ping);
+        assert_eq!(r.reply, "$4\r\nPONG\r\n");
     }
 }

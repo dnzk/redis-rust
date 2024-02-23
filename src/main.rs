@@ -1,4 +1,5 @@
-use redis_starter_rust::{Request, Response};
+use redis_starter_rust::{KvStore, Request, Response};
+use std::sync::Arc;
 use std::{
     io::{Read, Write},
     net::{TcpListener, TcpStream},
@@ -9,9 +10,10 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
 
     for stream in listener.incoming() {
-        thread::spawn(|| match stream {
+        let db = Arc::new(KvStore::new());
+        thread::spawn(move || match stream {
             Ok(stream) => {
-                handle_client(stream);
+                handle_client(stream, Arc::clone(&db));
             }
             Err(e) => {
                 println!("error: {}", e);
@@ -20,7 +22,7 @@ fn main() {
     }
 }
 
-fn handle_client(mut stream: TcpStream) {
+fn handle_client(mut stream: TcpStream, db: Arc<KvStore>) {
     let mut buf = [0; 512];
 
     loop {
@@ -29,7 +31,7 @@ fn handle_client(mut stream: TcpStream) {
         if bytes_read == 0 {
             break;
         }
-        let request = Request::from(&buf);
+        let request = Request::from(&buf, &db);
         let command = request.command();
         let response = Response::from(&command);
         stream
