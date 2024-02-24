@@ -14,6 +14,10 @@ impl KvStore {
         }
     }
 
+    pub fn db(&self) -> &'static Mutex<Kv> {
+        self.db
+    }
+
     pub fn set(&self, key: String, value: String) {
         match self.db.lock() {
             Ok(mut db) => {
@@ -36,6 +40,16 @@ impl KvStore {
                 None
             }
             _ => None,
+        }
+    }
+
+    pub fn remove(db: &Mutex<Kv>, key: &str) {
+        if let Ok(mut db) = db.lock() {
+            for (i, (k, _)) in db.clone().iter().enumerate() {
+                if k == key {
+                    db.remove(i);
+                }
+            }
         }
     }
 }

@@ -1,3 +1,4 @@
+use crate::commands::Set;
 use crate::resp::RespProtocol;
 use crate::KvStore;
 
@@ -10,7 +11,7 @@ const GET: &str = "get";
 pub enum Command {
     Ping,
     Echo(String),
-    Set(String, String),
+    Set(String, Option<String>),
     Get(String, Option<String>),
 }
 
@@ -22,9 +23,8 @@ impl<'a> Command {
                 PING => result = Command::Ping,
                 ECHO => result = Command::Echo(array.elements[1..].join(" ")),
                 SET => {
-                    db.set(array.elements[1].to_string(), array.elements[2].to_string());
-                    result =
-                        Command::Set(array.elements[1].to_string(), array.elements[2].to_string());
+                    let (key, value) = Set::save(&array.elements[1..].to_vec(), db);
+                    result = Command::Set(key, value);
                 }
                 GET => {
                     let value = db.get(&array.elements[1]);
@@ -61,7 +61,7 @@ mod command_tests {
     }
 
     #[test]
-    fn set_get() {
+    fn optionless_set_get() {
         let r = Command::from(
             "*3\r\n$3\r\nset\r\n$3\r\nfoo\r\n$3\r\nbar\r\n",
             &KvStore::new(),

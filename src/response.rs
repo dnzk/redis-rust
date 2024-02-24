@@ -10,13 +10,17 @@ impl<'a> Response {
             Command::Echo(s) => Response {
                 reply: format!("${}\r\n{}\r\n", s.len(), s),
             },
-            Command::Set(_k, _v) => Response {
-                reply: "+OK\r\n".to_string(),
-            },
+            Command::Set(_k, value) => {
+                let reply = match value {
+                    Some(s) => format!("${}\r\n{}\r\n", s.len(), s),
+                    None => "+OK\r\n".to_string(),
+                };
+                Response { reply }
+            }
             Command::Get(_k, v) => Response {
                 reply: match v {
                     Some(value) => format!("${}\r\n{}\r\n", value.len(), value),
-                    None => "(nil)".to_string(),
+                    None => "$-1\r\n".to_string(),
                 },
             },
             _ => Response {
@@ -43,7 +47,13 @@ mod response_tests {
 
     #[test]
     fn replies_set() {
-        let r = Response::from(&Command::Set("foo".to_string(), "bar".to_string()));
+        let r = Response::from(&Command::Set("foo".to_string(), Some("bar".to_string())));
+        assert_eq!(r.reply, "$3\r\nbar\r\n");
+    }
+
+    #[test]
+    fn replies_set_none() {
+        let r = Response::from(&Command::Set("foo".to_string(), None));
         assert_eq!(r.reply, "+OK\r\n");
     }
 
@@ -56,7 +66,7 @@ mod response_tests {
     #[test]
     fn replies_get_when_none() {
         let r = Response::from(&Command::Get("foo".to_string(), None));
-        assert_eq!(r.reply, "(nil)");
+        assert_eq!(r.reply, "$-1\r\n");
     }
 
     #[test]

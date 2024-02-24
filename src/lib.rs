@@ -1,4 +1,5 @@
 mod command;
+mod commands;
 mod kv_store;
 mod request;
 mod resp;
