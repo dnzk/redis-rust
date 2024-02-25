@@ -1,109 +1,6 @@
+use super::set_arguments::{SetArguments, SetCondition, SetExpiration};
 use crate::KvStore;
 use std::{thread, time};
-
-#[derive(Debug)]
-pub enum SetExpiration {
-    Ex(usize),
-    Px(usize),
-    ExAt(usize),
-    PxAt(usize),
-    KeepTtl,
-}
-
-#[derive(Debug)]
-pub enum SetCondition {
-    Nx,
-    Xx,
-}
-
-#[derive(Debug)]
-pub struct SetArguments {
-    expiration: Option<SetExpiration>,
-    condition: Option<SetCondition>,
-    return_value: bool,
-}
-
-impl<'a> SetArguments {
-    fn from(source: Vec<String>) -> Self {
-        let mut expiration = None;
-        let mut condition = None;
-        let mut return_value = false;
-
-        let mut current = 0;
-
-        for s in source.iter() {
-            match s.to_lowercase().as_str() {
-                "ex" => {
-                    if let Some(next) = source.get(current + 1) {
-                        if let Ok(ex) = next.parse::<usize>() {
-                            expiration = Some(SetExpiration::Ex(ex));
-                            current += 2;
-                        }
-                    } else {
-                        expiration = None;
-                        current += 1;
-                    }
-                }
-                "px" => {
-                    if let Some(next) = source.get(current + 1) {
-                        if let Ok(px) = next.parse::<usize>() {
-                            expiration = Some(SetExpiration::Px(px));
-                            current += 2;
-                        }
-                    } else {
-                        expiration = None;
-                        current += 1;
-                    }
-                }
-                "exat" => {
-                    if let Some(next) = source.get(current + 1) {
-                        if let Ok(exat) = next.parse::<usize>() {
-                            expiration = Some(SetExpiration::ExAt(exat));
-                            current += 2;
-                        }
-                    } else {
-                        expiration = None;
-                        current += 1;
-                    }
-                }
-                "pxat" => {
-                    if let Some(next) = source.get(current + 1) {
-                        if let Ok(pxat) = next.parse::<usize>() {
-                            expiration = Some(SetExpiration::PxAt(pxat));
-                            current += 2;
-                        }
-                    } else {
-                        expiration = None;
-                        current += 1;
-                    }
-                }
-                "keepttl" => {
-                    expiration = Some(SetExpiration::KeepTtl);
-                    current += 1;
-                }
-                "nx" => {
-                    condition = Some(SetCondition::Nx);
-                    current += 1;
-                }
-                "xx" => {
-                    condition = Some(SetCondition::Xx);
-                    current += 1;
-                }
-                "get" => {
-                    return_value = true;
-                    current += 1;
-                }
-                _ => current += 1,
-            }
-        }
-
-        SetArguments {
-            expiration,
-            condition,
-            return_value,
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct Set {
@@ -128,23 +25,24 @@ impl<'a> Set {
     pub fn save(args: &'a Vec<String>, db: &KvStore) -> (String, Option<String>) {
         let s = Self::from(args);
         let mut previous_value: Option<String> = None;
+        let value = s.value.as_ref().unwrap();
         if let Some(arguments) = s.arguments.as_ref() {
             if let Some(condition) = &arguments.condition {
                 match condition {
                     SetCondition::Nx => {
                         if db.get(&s.key).is_none() {
-                            db.set(s.key(), s.value.clone().unwrap());
+                            db.set(s.key(), value.to_owned());
                         }
                     }
                     SetCondition::Xx => {
                         if db.get(&s.key).is_some() {
                             previous_value = db.get(&s.key);
-                            db.set(s.key(), s.value.clone().unwrap());
+                            db.set(s.key(), value.to_owned());
                         }
                     }
                 }
             } else {
-                db.set(s.key(), s.value.clone().unwrap());
+                db.set(s.key(), value.to_owned());
             }
 
             if let Some(expiration) = &arguments.expiration {
@@ -178,7 +76,7 @@ impl<'a> Set {
             }
             return (s.key().clone(), None);
         }
-        db.set(s.key(), s.value.as_ref().unwrap().clone());
+        db.set(s.key(), value.to_owned());
         (s.key().clone(), None)
     }
 
