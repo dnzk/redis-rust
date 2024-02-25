@@ -105,10 +105,7 @@ impl<'a> SetArguments {
 #[cfg(test)]
 mod set_arguments_tests {
     use super::*;
-
-    macro_rules! vec_of_strings {
-        ($($x:expr),*) => (vec![$($x.to_string()),*]);
-    }
+    use crate::vec_of_strings;
 
     #[test]
     fn parses_ex() {

@@ -1,4 +1,5 @@
-use redis_starter_rust::{KvStore, Request, Response};
+use redis_starter_rust::{Config, KvStore, Request, Response};
+use std::env;
 use std::sync::Arc;
 use std::{
     io::{Read, Write},
@@ -7,7 +8,9 @@ use std::{
 };
 
 fn main() {
-    let listener = TcpListener::bind("127.0.0.1:6379").unwrap();
+    let args: Vec<String> = env::args().collect();
+    let address = Config::from(&args).address();
+    let listener = TcpListener::bind(address).unwrap();
 
     for stream in listener.incoming() {
         let db = Arc::new(KvStore::new());
