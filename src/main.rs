@@ -1,4 +1,4 @@
-use redis_starter_rust::{Config, KvStore, MetaData, Request, Response, Storage};
+use redis_starter_rust::{Config, MetaData, Request, Response, Storage};
 use std::env;
 use std::sync::Arc;
 use std::{
@@ -18,6 +18,11 @@ fn main() {
         if let Some(master) = config.master() {
             db.meta.set(MetaData::Master((master.0, master.1)));
         }
+        // TODO: generate replication ID
+        db.meta.set(MetaData::ReplicationId(
+            "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb".to_string(),
+        ));
+        db.meta.set(MetaData::ReplicationOffset(0));
         thread::spawn(move || match stream {
             Ok(stream) => {
                 handle_client(stream, Arc::clone(&db));

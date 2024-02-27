@@ -1,4 +1,4 @@
-use crate::Meta;
+use crate::{Meta, MetaData};
 
 #[derive(Debug)]
 pub enum Replication {
@@ -37,25 +37,27 @@ pub struct Info {
 impl<'a> Info {
     pub fn from(source: &Vec<String>, db: &Meta) -> Self {
         let mut section = InfoSection::Default;
+        let mut info = String::new();
         for s in source {
             match s.as_str() {
                 "replication" => {
-                    if let Some(master) = db.get("master") {
+                    if db.get("master").is_some() {
                         section = InfoSection::Replication(Replication::Slave);
+                        info.push_str("role:slave");
                     } else {
                         section = InfoSection::Replication(Replication::Master);
+                        info.push_str("role:master");
+                    }
+                    if let Some(MetaData::ReplicationId(id)) = db.get("replication_id") {
+                        info.push_str(format!("\nmaster_replid:{}", id).as_str());
+                    }
+                    if let Some(MetaData::ReplicationOffset(o)) = db.get("replication_offset") {
+                        info.push_str(format!("\nmaster_repl_offset:{}", o).as_str());
                     }
                 }
                 _ => (),
             }
         }
-        let info = match &section {
-            InfoSection::Replication(replication) => match replication {
-                Replication::Master => "role:master".to_string(),
-                Replication::Slave => "role:slave".to_string(),
-            },
-            _ => "".to_string(),
-        };
         Info { section, info }
     }
 
