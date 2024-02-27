@@ -13,6 +13,19 @@ fn main() {
     let address = config.address();
     let listener = TcpListener::bind(address).unwrap();
 
+    if let Some((base, port)) = config.master() {
+        let master_address = format!("{}:{}", base, port);
+        match TcpStream::connect(master_address) {
+            Ok(mut stream) => {
+                let ping = "*1\r\n$4\r\nPING\r\n".as_bytes();
+                stream.write_all(ping).unwrap();
+            }
+            Err(err) => {
+                eprintln!("Failure on connecting to master: {}", err);
+            }
+        }
+    }
+
     for stream in listener.incoming() {
         let db = Arc::new(Storage::new());
         if let Some(master) = config.master() {
