@@ -1,13 +1,13 @@
 mod command;
 mod commands;
 mod config;
-mod kv_store;
 mod macros;
 mod request;
 mod resp;
 mod response;
+mod storage;
 pub use command::Command;
 pub use config::Config;
-pub use kv_store::KvStore;
 pub use request::Request;
 pub use response::Response;
+pub use storage::{KvStore, Meta, MetaData, Storage};

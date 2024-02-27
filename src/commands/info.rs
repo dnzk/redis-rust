@@ -1,3 +1,11 @@
+use crate::Meta;
+
+#[derive(Debug)]
+pub enum Replication {
+    Master,
+    Slave,
+}
+
 /// Info sections per https://redis.io/commands/info/
 #[derive(Debug)]
 pub enum InfoSection {
@@ -6,7 +14,7 @@ pub enum InfoSection {
     // Memory,
     // Persistence,
     // Stats,
-    Replication,
+    Replication(Replication),
     // Cpu,
     // CommandStats,
     // LatencyStats,
@@ -27,18 +35,28 @@ pub struct Info {
 }
 
 impl<'a> Info {
-    pub fn from(source: &Vec<String>) -> Self {
+    pub fn from(source: &Vec<String>, db: &Meta) -> Self {
         let mut section = InfoSection::Default;
         for s in source {
             match s.as_str() {
-                "replication" => section = InfoSection::Replication,
+                "replication" => {
+                    if let Some(master) = db.get("master") {
+                        section = InfoSection::Replication(Replication::Slave);
+                    } else {
+                        section = InfoSection::Replication(Replication::Master);
+                    }
+                }
                 _ => (),
             }
         }
-        Info {
-            section,
-            info: "role:master".to_string(),
-        }
+        let info = match &section {
+            InfoSection::Replication(replication) => match replication {
+                Replication::Master => "role:master".to_string(),
+                Replication::Slave => "role:slave".to_string(),
+            },
+            _ => "".to_string(),
+        };
+        Info { section, info }
     }
 
     pub fn info(&self) -> String {

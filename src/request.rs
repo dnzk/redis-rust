@@ -1,4 +1,4 @@
-use crate::KvStore;
+use crate::Storage;
 
 use crate::command::Command;
 
@@ -7,7 +7,7 @@ pub struct Request {
 }
 
 impl<'a> Request {
-    pub fn from(buf: &'a [u8], db: &KvStore) -> Self {
+    pub fn from(buf: &'a [u8], db: &Storage) -> Self {
         let mut v: Vec<u8> = vec![];
         let zero: u8 = 0;
         for b in buf.into_iter() {

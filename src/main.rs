@@ -1,4 +1,4 @@
-use redis_starter_rust::{Config, KvStore, Request, Response};
+use redis_starter_rust::{Config, KvStore, MetaData, Request, Response, Storage};
 use std::env;
 use std::sync::Arc;
 use std::{
@@ -9,11 +9,15 @@ use std::{
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let address = Config::from(&args).address();
+    let config = Config::from(&args);
+    let address = config.address();
     let listener = TcpListener::bind(address).unwrap();
 
     for stream in listener.incoming() {
-        let db = Arc::new(KvStore::new());
+        let db = Arc::new(Storage::new());
+        if let Some(master) = config.master() {
+            db.meta.set(MetaData::Master((master.0, master.1)));
+        }
         thread::spawn(move || match stream {
             Ok(stream) => {
                 handle_client(stream, Arc::clone(&db));
@@ -25,7 +29,7 @@ fn main() {
     }
 }
 
-fn handle_client(mut stream: TcpStream, db: Arc<KvStore>) {
+fn handle_client(mut stream: TcpStream, db: Arc<Storage>) {
     let mut buf = [0; 512];
 
     loop {

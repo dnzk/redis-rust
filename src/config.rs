@@ -1,20 +1,23 @@
 use std::net::SocketAddr;
 
 const PORT: &str = "--port";
+const REPLICA_OF: &str = "--replicaof";
 
 const BASE: [u8; 4] = [127, 0, 0, 1];
 const DEFAULT_PORT: u16 = 6379;
 
 pub struct Config {
     port: Option<u16>,
+    master: Option<(String, String)>,
 }
 
 impl<'a> Config {
     pub fn from(source: &'a Vec<String>) -> Self {
         let mut current = 0;
         let mut port = None;
-        for s in source {
-            match s.as_str() {
+        let mut master = None;
+        while current < source.len() {
+            match source[current].as_str() {
                 PORT => {
                     if let Some(thing) = source.get(current + 1) {
                         let p = thing.parse::<u16>();
@@ -28,10 +31,15 @@ impl<'a> Config {
                         current += 1;
                     }
                 }
+                REPLICA_OF => {
+                    let replica_params = &source[current + 1..current + 3];
+                    current += 3;
+                    master = Some((replica_params[0].to_owned(), replica_params[1].to_owned()));
+                }
                 _ => current += 1,
             }
         }
-        Config { port }
+        Config { port, master }
     }
 
     pub fn address(&self) -> SocketAddr {
@@ -39,6 +47,10 @@ impl<'a> Config {
             return SocketAddr::from((BASE, port));
         }
         SocketAddr::from((BASE, DEFAULT_PORT))
+    }
+
+    pub fn master(&self) -> Option<(String, String)> {
+        self.master.clone()
     }
 }
 
