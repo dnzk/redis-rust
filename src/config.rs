@@ -1,5 +1,7 @@
 use std::net::SocketAddr;
 
+const PORT: &str = "--port";
+
 const BASE: [u8; 4] = [127, 0, 0, 1];
 const DEFAULT_PORT: u16 = 6379;
 
@@ -13,7 +15,7 @@ impl<'a> Config {
         let mut port = None;
         for s in source {
             match s.as_str() {
-                "--port" => {
+                PORT => {
                     if let Some(thing) = source.get(current + 1) {
                         let p = thing.parse::<u16>();
                         if let Ok(p) = p {

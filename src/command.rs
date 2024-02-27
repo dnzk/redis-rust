@@ -1,4 +1,4 @@
-use crate::commands::Set;
+use crate::commands::{Info, Set};
 use crate::resp::RespProtocol;
 use crate::KvStore;
 
@@ -6,6 +6,7 @@ const PING: &str = "ping";
 const ECHO: &str = "echo";
 const SET: &str = "set";
 const GET: &str = "get";
+const INFO: &str = "info";
 
 #[derive(Debug)]
 pub enum Command {
@@ -13,6 +14,7 @@ pub enum Command {
     Echo(String),
     Set(String, Option<String>),
     Get(String, Option<String>),
+    Info(String),
 }
 
 impl<'a> Command {
@@ -29,6 +31,10 @@ impl<'a> Command {
                 GET => {
                     let value = db.get(&array.elements[1]);
                     result = Command::Get(array.elements[1].to_string(), value);
+                }
+                INFO => {
+                    let info = Info::from(&array.elements[1..].to_vec());
+                    result = Command::Info(info.info());
                 }
                 _ => (),
             },

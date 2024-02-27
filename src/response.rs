@@ -23,6 +23,9 @@ impl<'a> Response {
                     None => "$-1\r\n".to_string(),
                 },
             },
+            Command::Info(info) => Response {
+                reply: format!("${}\r\n${}\r\n", info.len(), info),
+            },
             _ => Response {
                 reply: "$4\r\nPONG\r\n".to_string(),
             },
