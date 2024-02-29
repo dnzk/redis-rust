@@ -1,6 +1,6 @@
 use crate::commands::{Info, Set};
 use crate::resp::RespProtocol;
-use crate::Storage;
+use crate::{MetaData, Storage};
 
 const PING: &str = "ping";
 const ECHO: &str = "echo";
@@ -8,6 +8,7 @@ const SET: &str = "set";
 const GET: &str = "get";
 const INFO: &str = "info";
 const REPLCONF: &str = "replconf";
+const PSYNC: &str = "psync";
 
 #[derive(Debug)]
 pub enum Command {
@@ -17,6 +18,7 @@ pub enum Command {
     Get(String, Option<String>),
     Info(String),
     ReplConf,
+    Psync(String),
 }
 
 impl<'a> Command {
@@ -40,6 +42,13 @@ impl<'a> Command {
                 }
                 REPLCONF => {
                     result = Command::ReplConf;
+                }
+                PSYNC => {
+                    if let MetaData::ReplicationId(id) = db.meta.get("replication_id").unwrap() {
+                        result = Command::Psync(id);
+                    } else {
+                        panic!("Missing replication id");
+                    }
                 }
                 _ => (),
             },

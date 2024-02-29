@@ -33,6 +33,9 @@ impl<'a> Response {
             Command::ReplConf => Response {
                 reply: "+OK\r\n".to_string(),
             },
+            Command::Psync(id) => Response {
+                reply: format!("+FULLRESYNC {} 0\r\n", id),
+            },
         }
     }
 
