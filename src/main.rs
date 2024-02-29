@@ -64,11 +64,16 @@ fn connect_to_master(address: String, my_port: u16) {
                 "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n{}\r\n",
                 my_port
             );
-            let stream = ad_hoc_response(stream, "+PONG\r\n", repl_conf.as_str());
-            ad_hoc_response(
+            stream = ad_hoc_response(stream, "+PONG\r\n", repl_conf.as_str());
+            stream = ad_hoc_response(
                 stream,
                 "+OK\r\n",
                 "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n",
+            );
+            ad_hoc_response(
+                stream,
+                "+OK\r\n",
+                "*3\r\n$5\r\nPSYNC\r\n$1\r\n?\r\n$2\r\n-1\r\n",
             );
         }
         Err(error) => {
