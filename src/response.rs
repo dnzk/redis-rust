@@ -1,5 +1,6 @@
 use crate::Command;
 
+#[derive(Debug)]
 pub struct Response {
     reply: String,
 }
@@ -26,8 +27,11 @@ impl<'a> Response {
             Command::Info(info) => Response {
                 reply: format!("${}\r\n{}\r\n", info.len(), info),
             },
-            _ => Response {
+            Command::Ping => Response {
                 reply: "$4\r\nPONG\r\n".to_string(),
+            },
+            Command::ReplConf => Response {
+                reply: "+OK\r\n".to_string(),
             },
         }
     }

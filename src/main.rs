@@ -14,18 +14,8 @@ fn main() {
     let listener = TcpListener::bind(address).unwrap();
 
     if let Some((base, port)) = config.master() {
-        let master_address = format!("{}:{}", base, port);
-        match TcpStream::connect(master_address) {
-            Ok(mut stream) => {
-                let ping = "*1\r\n$4\r\nPING\r\n".as_bytes();
-                stream.write_all(ping).unwrap();
-            }
-            Err(err) => {
-                eprintln!("Failure on connecting to master: {}", err);
-            }
-        }
+        connect_to_master(format!("{}:{}", base, port), config.address().port());
     }
-
     for stream in listener.incoming() {
         let db = Arc::new(Storage::new());
         if let Some(master) = config.master() {
@@ -63,4 +53,45 @@ fn handle_client(mut stream: TcpStream, db: Arc<Storage>) {
             .write_all(&response.buf())
             .expect("Failed to write to client");
     }
+}
+
+fn connect_to_master(address: String, my_port: u16) {
+    match TcpStream::connect(address) {
+        Ok(mut stream) => {
+            let ping = "*1\r\n$4\r\nPING\r\n".as_bytes();
+            stream.write_all(ping).unwrap();
+            let repl_conf = format!(
+                "*3\r\n$8\r\nREPLCONF\r\n$14\r\nlistening-port\r\n$4\r\n{}\r\n",
+                my_port
+            );
+            let stream = ad_hoc_response(stream, "+PONG\r\n", repl_conf.as_str());
+            ad_hoc_response(
+                stream,
+                "+OK\r\n",
+                "*3\r\n$8\r\nREPLCONF\r\n$4\r\ncapa\r\n$6\r\npsync2\r\n",
+            );
+        }
+        Err(error) => {
+            eprintln!("Failure on connecting to master: {}", error);
+        }
+    }
+}
+
+fn ad_hoc_response(mut stream: TcpStream, respond_to: &str, msg: &str) -> TcpStream {
+    let mut buf = [0; 512];
+
+    stream.read(&mut buf).expect("Client failure");
+
+    let mut v: Vec<u8> = vec![];
+    let zero: u8 = 0;
+    for b in buf.into_iter() {
+        if b != zero {
+            v.push(b);
+        }
+    }
+    let s = String::from_utf8(v).unwrap();
+    if s.as_str() == respond_to {
+        stream.write_all(msg.as_bytes()).unwrap();
+    }
+    stream
 }

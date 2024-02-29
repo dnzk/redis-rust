@@ -7,6 +7,7 @@ const ECHO: &str = "echo";
 const SET: &str = "set";
 const GET: &str = "get";
 const INFO: &str = "info";
+const REPLCONF: &str = "replconf";
 
 #[derive(Debug)]
 pub enum Command {
@@ -15,6 +16,7 @@ pub enum Command {
     Set(String, Option<String>),
     Get(String, Option<String>),
     Info(String),
+    ReplConf,
 }
 
 impl<'a> Command {
@@ -35,6 +37,9 @@ impl<'a> Command {
                 INFO => {
                     let info = Info::from(&array.elements[1..].to_vec(), &db.meta);
                     result = Command::Info(info.info());
+                }
+                REPLCONF => {
+                    result = Command::ReplConf;
                 }
                 _ => (),
             },
