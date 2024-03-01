@@ -1,4 +1,4 @@
-use redis_starter_rust::{Config, MetaData, Request, Response, Storage};
+use redis_starter_rust::{Command, Config, MetaData, Rdb, Request, Response, Storage};
 use std::env;
 use std::sync::Arc;
 use std::{
@@ -52,6 +52,10 @@ fn handle_client(mut stream: TcpStream, db: Arc<Storage>) {
         stream
             .write_all(&response.buf())
             .expect("Failed to write to client");
+
+        if let Command::Psync(_) = command {
+            stream.write_all(&Rdb::empty()).expect("Failed");
+        }
     }
 }
 
